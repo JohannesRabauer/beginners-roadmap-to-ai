@@ -26,7 +26,10 @@ class HomePageIntegrationTest {
         mockMvc.perform(get("/"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("home"))
-                .andExpect(content().string(containsString("Steuererklärung 2025 Assistant")))
-                .andExpect(content().string(containsString("Diese Anwendung hilft bei der Vorbereitung einer deutschen Steuererklärung für 2025.")));
+                .andExpect(content().string(containsString("id=\"app-shell\"")))
+                .andExpect(content().string(containsString("id=\"app-title\"")))
+                .andExpect(content().string(containsString("id=\"next-steps\"")))
+                .andExpect(content().string(containsString("id=\"disclaimer\"")))
+                .andExpect(content().string(containsString(">2025<")));
     }
 }

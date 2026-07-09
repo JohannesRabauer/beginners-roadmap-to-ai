@@ -6,11 +6,11 @@
     <title th:text="${applicationName}">Steuererklärung 2025 Assistant</title>
 </head>
 <body>
-<main>
-    <h1 th:text="${applicationName}">Steuererklärung 2025 Assistant</h1>
-    <p>Lokale Arbeitsoberfläche für die Einkommensteuererklärung <span th:text="${taxYear}">2025</span>.</p>
+<main id="app-shell">
+    <h1 id="app-title" th:text="${applicationName}">Steuererklärung 2025 Assistant</h1>
+    <p>Lokale Arbeitsoberfläche für die Einkommensteuererklärung <span id="tax-year" th:text="${taxYear}">2025</span>.</p>
 
-    <section>
+    <section id="next-steps">
         <h2>Geplanter Einstieg</h2>
         <ul>
             <li>Steuerfall für 2025 anlegen</li>
@@ -19,7 +19,7 @@
         </ul>
     </section>
 
-    <section>
+    <section id="disclaimer">
         <h2>Hinweis</h2>
         <p>Diese Anwendung hilft bei der Vorbereitung einer deutschen Steuererklärung für 2025. Sie ersetzt keine steuerliche oder rechtliche Beratung.</p>
     </section>
