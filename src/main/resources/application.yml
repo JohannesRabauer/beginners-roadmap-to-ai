@@ -20,6 +20,10 @@ spring:
   thymeleaf:
     cache: false
 
+steuererklaerung:
+  ui-name: Steuererklärung 2025 Assistant
+  tax-year: 2025
+
 ---
 spring:
   config:
