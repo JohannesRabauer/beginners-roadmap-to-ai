@@ -1,0 +1,6 @@
+- Use Unit Tests for all important methods.
+- Use integrations tests for big features.
+- always find a github issue for your task. If there is none, create one.
+- Always use feature branches for the issues.
+- Always use pull requests for merging your code.
+- Always make sure that all tests run through before you commit something.
