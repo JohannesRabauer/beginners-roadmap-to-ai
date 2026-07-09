@@ -41,7 +41,7 @@ public class TaxReturnEntity extends AuditableEntity {
     @OneToMany(mappedBy = "taxReturn", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true)
     private final List<ValidationIssueEntity> validationIssues = new ArrayList<>();
 
-    @OneToOne(mappedBy = "taxReturn", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true)
+@OneToOne(fetch = jakarta.persistence.FetchType.LAZY, mappedBy = "taxReturn", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true)
     private ExportBundleEntity exportBundle;
 
     public int getTaxYear() {
