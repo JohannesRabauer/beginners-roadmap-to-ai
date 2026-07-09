@@ -3,10 +3,6 @@ spring:
     name: steuererklaerung-2025-assistant
   profiles:
     default: local
-  datasource:
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
   jpa:
     open-in-view: false
     hibernate:
@@ -31,3 +27,6 @@ spring:
       on-profile: local
   datasource:
     url: jdbc:h2:file:./data/steuererklaerung2025;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
