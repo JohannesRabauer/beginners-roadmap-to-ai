@@ -120,7 +120,7 @@ class TaxReturnPersistenceIntegrationTest {
         assertThat(loaded.getTaxYear()).isEqualTo(2025);
         assertThat(loaded.getFilingMode()).isEqualTo(FilingMode.JOINT);
         assertThat(loaded.getStatus()).isEqualTo(ReturnStatus.DRAFT);
-assertThat(loaded.getPersons()).extracting(PersonEntity::getRole).containsExactlyInAnyOrder(PersonRole.TAXPAYER, PersonRole.SPOUSE);
+        assertThat(loaded.getPersons()).extracting(PersonEntity::getRole).containsExactlyInAnyOrder(PersonRole.TAXPAYER, PersonRole.SPOUSE);
         assertThat(loaded.getWageTaxCertificates()).hasSize(1);
         assertThat(loaded.getDeductionItems()).hasSize(1);
         assertThat(loaded.getValidationIssues()).hasSize(1);
