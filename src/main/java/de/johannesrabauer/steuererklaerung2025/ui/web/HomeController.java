@@ -4,8 +4,8 @@ import de.johannesrabauer.steuererklaerung2025.domain.model.FilingMode;
 import de.johannesrabauer.steuererklaerung2025.domain.model.ReturnStatus;
 import de.johannesrabauer.steuererklaerung2025.domain.model.TaxReturnEntity;
 import de.johannesrabauer.steuererklaerung2025.domain.port.TaxReturnRepository;
+import java.util.Arrays;
 import java.time.Instant;
-import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
@@ -53,15 +53,17 @@ public class HomeController {
     public String createReturn(
             @RequestParam("filingMode") String filingModeInput,
             RedirectAttributes redirectAttributes) {
-        FilingMode filingMode;
-        try {
-            filingMode = FilingMode.valueOf(filingModeInput.toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException exception) {
+        String normalizedFilingModeInput = filingModeInput == null ? "" : filingModeInput.trim();
+        Optional<FilingMode> filingMode = Arrays.stream(FilingMode.values())
+                .filter(mode -> mode.name().equalsIgnoreCase(normalizedFilingModeInput))
+                .findFirst();
+
+        if (filingMode.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", "Ungültiger Veranlagungstyp.");
             return "redirect:/";
         }
 
-        TaxReturnEntity saved = taxReturnRepository.save(createDraftTaxReturn(filingMode));
+        TaxReturnEntity saved = taxReturnRepository.save(createDraftTaxReturn(filingMode.get()));
         redirectAttributes.addFlashAttribute("message", "Steuerfall wurde angelegt.");
         return "redirect:/?opened=" + saved.getId();
     }
@@ -85,9 +87,7 @@ public class HomeController {
         }
 
         TaxReturnEntity entity = taxReturn.get();
-        entity.setStatus(ReturnStatus.COMPLETED);
-        entity.setCompletedAt(Instant.now());
-        taxReturnRepository.save(entity);
+        updateStatus(entity, ReturnStatus.COMPLETED, Instant.now());
 
         redirectAttributes.addFlashAttribute("message", "Steuerfall als abgeschlossen markiert.");
         return "redirect:/?opened=" + returnId;
@@ -102,26 +102,18 @@ public class HomeController {
         }
 
         TaxReturnEntity entity = taxReturn.get();
-        entity.setStatus(ReturnStatus.DRAFT);
-        entity.setCompletedAt(null);
-        taxReturnRepository.save(entity);
+        updateStatus(entity, ReturnStatus.DRAFT, null);
 
         redirectAttributes.addFlashAttribute("message", "Steuerfall wieder als Entwurf markiert.");
         return "redirect:/?opened=" + returnId;
     }
 
     public String statusLabel(ReturnStatus status) {
-        return switch (status) {
-            case DRAFT -> "Entwurf";
-            case COMPLETED -> "Abgeschlossen";
-        };
+        return status.getGermanLabel();
     }
 
     public String filingModeLabel(FilingMode filingMode) {
-        return switch (filingMode) {
-            case SINGLE -> "Einzelveranlagung";
-            case JOINT -> "Gemeinsame Veranlagung";
-        };
+        return filingMode.getGermanLabel();
     }
 
     private TaxReturnEntity createDraftTaxReturn(FilingMode filingMode) {
@@ -135,5 +127,11 @@ public class HomeController {
     private Optional<TaxReturnEntity> findReturnForCurrentYear(UUID returnId) {
         return taxReturnRepository.findById(returnId)
                 .filter(taxReturn -> taxReturn.getTaxYear() == taxYear);
+    }
+
+    private void updateStatus(TaxReturnEntity taxReturn, ReturnStatus status, Instant completedAt) {
+        taxReturn.setStatus(status);
+        taxReturn.setCompletedAt(completedAt);
+        taxReturnRepository.save(taxReturn);
     }
 }

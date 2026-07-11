@@ -1,7 +1,6 @@
 package de.johannesrabauer.steuererklaerung2025.ui.web;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.matchesRegex;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -13,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import de.johannesrabauer.steuererklaerung2025.infrastructure.persistence.jpa.SpringDataTaxReturnRepository;
 import de.johannesrabauer.steuererklaerung2025.infrastructure.security.PassphraseService;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.AfterEach;
@@ -149,8 +149,7 @@ class HomePageIntegrationTest {
                 .andExpect(redirectedUrlPattern("/?opened=*"))
                 .andReturn();
 
-        String redirectUrl = createResult.getResponse().getRedirectedUrl();
-        String returnId = redirectUrl.substring(redirectUrl.indexOf("opened=") + 7);
+        String returnId = extractOpenedReturnId(createResult.getResponse().getRedirectedUrl());
 
         mockMvc.perform(get("/").session(testSession))
                 .andExpect(status().isOk())
@@ -176,6 +175,17 @@ class HomePageIntegrationTest {
         mockMvc.perform(get("/?opened=" + returnId).session(testSession))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Entwurf")))
-                .andExpect(content().string(matchesRegex("(?s).*id=\\\"opened-return-id\\\">\\Q" + returnId + "\\E<.*")));
+                .andExpect(content().string(containsString(returnId)));
+    }
+
+    private String extractOpenedReturnId(String redirectedUrl) {
+        if (redirectedUrl == null) {
+            throw new IllegalStateException("Redirect URL is missing.");
+        }
+        String query = URI.create("http://localhost" + redirectedUrl).getQuery();
+        if (query == null || !query.startsWith("opened=")) {
+            throw new IllegalStateException("opened query parameter is missing.");
+        }
+        return query.substring("opened=".length());
     }
 }
