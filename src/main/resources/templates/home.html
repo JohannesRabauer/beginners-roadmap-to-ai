@@ -3,15 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="${applicationName}">Steuererklärung 2025 Assistant</title>
+    <title th:text="${applicationName}">Steuererklaerung 2025 Assistant</title>
 </head>
 <body>
 <main id="app-shell">
     <header>
-        <h1 id="app-title" th:text="${applicationName}">Steuererklärung 2025 Assistant</h1>
-        <p>Lokale Arbeitsoberfläche für die Einkommensteuererklärung <span id="tax-year" th:text="${taxYear}">2025</span>.</p>
-        <p id="session-status">Die Anwendung ist entsperrt. Ihre lokalen Daten bleiben nur mit Ihrer Passphrase lesbar.</p>
+        <h1 id="app-title" th:text="${applicationName}">Steuererklaerung 2025 Assistant</h1>
+        <p>Lokale Arbeitsoberflaeche fuer die Einkommensteuererklaerung <span id="tax-year" th:text="${taxYear}">2025</span>.</p>
+        <p id="session-status">Die Anwendung ist entsperrt. Steuerdaten bleiben lokal gespeichert und nur mit Ihrer Passphrase lesbar.</p>
         <p th:if="${message}" id="status-message" th:text="${message}"></p>
+        <p th:if="${error}" id="status-error" th:text="${error}"></p>
         <form method="post" th:action="@{/lock}">
             <button id="lock-button" type="submit">Anwendung sperren</button>
         </form>
@@ -19,7 +20,7 @@
 
     <section id="dashboard">
         <h2>Steuerfall-Dashboard</h2>
-        <p>Sie können einen neuen Steuerfall für <span th:text="${taxYear}">2025</span> anlegen oder einen vorhandenen Entwurf fortsetzen.</p>
+        <p>Starten Sie einen neuen 2025er-Steuerfall oder setzen Sie einen vorhandenen Entwurf fort.</p>
         <form method="post" th:action="@{/returns}">
             <label for="filing-mode">Veranlagung</label>
             <select id="filing-mode" name="filingMode" required>
@@ -38,7 +39,9 @@
                 <th>ID</th>
                 <th>Veranlagung</th>
                 <th>Status</th>
-                <th>Zuletzt geändert</th>
+                <th>Aktueller Abschnitt</th>
+                <th>Validierung</th>
+                <th>Zuletzt geaendert</th>
                 <th>Aktion</th>
             </tr>
             </thead>
@@ -47,34 +50,40 @@
                 <td th:text="${taxReturn.id}"></td>
                 <td th:text="${@homeController.filingModeLabel(taxReturn.filingMode)}"></td>
                 <td th:text="${@homeController.statusLabel(taxReturn.status)}"></td>
+                <td th:text="${@homeController.interviewStepLabel(taxReturn.currentInterviewStep)}"></td>
+                <td th:text="${taxReturn.validationIssues.size()} + ' Hinweise'"></td>
                 <td th:text="${#temporals.format(taxReturn.updatedAt, 'dd.MM.yyyy HH:mm')}"></td>
                 <td>
-                    <a th:href="@{|/returns/${taxReturn.id}|}">Öffnen</a>
+                    <a th:href="@{|/returns/${taxReturn.id}/wizard/${taxReturn.currentInterviewStep.routeSegment}|}">Interview</a>
+                    <span> | </span>
+                    <a th:href="@{|/returns/${taxReturn.id}/wizard/pruefung|}">Pruefung</a>
                 </td>
             </tr>
             </tbody>
         </table>
     </section>
 
-    <section id="return-lifecycle" th:if="${openedReturn != null}">
-        <h2>Geöffneter Steuerfall</h2>
-        <div>
-            <p>ID: <span id="opened-return-id" th:text="${openedReturn.id}"></span></p>
-            <p>Status: <span id="opened-return-status" th:text="${@homeController.statusLabel(openedReturn.status)}"></span></p>
-            <p>Veranlagung: <span id="opened-return-filing-mode" th:text="${@homeController.filingModeLabel(openedReturn.filingMode)}"></span></p>
-            <p id="resume-hint">Der geführte Interview-Ablauf wird in den nächsten Schritten erweitert. Dieser Steuerfall ist bereits angelegt und kann wieder geöffnet werden.</p>
-            <form method="post" th:if="${openedReturn.status.name() == 'DRAFT'}" th:action="@{|/returns/${openedReturn.id}/complete|}">
-                <button id="mark-completed-button" type="submit">Als abgeschlossen markieren</button>
-            </form>
-            <form method="post" th:if="${openedReturn.status.name() == 'COMPLETED'}" th:action="@{|/returns/${openedReturn.id}/resume|}">
-                <button id="mark-draft-button" type="submit">Wieder als Entwurf öffnen</button>
-            </form>
+    <section id="opened-return" th:if="${openedReturn != null}">
+        <h2>Zuletzt angelegter Steuerfall</h2>
+        <p>ID: <span th:text="${openedReturn.id}"></span></p>
+        <p>Status: <span th:text="${@homeController.statusLabel(openedReturn.status)}"></span></p>
+        <p>Naechster Abschnitt: <span th:text="${@homeController.interviewStepLabel(openedReturn.currentInterviewStep)}"></span></p>
+        <p>Offene Hinweise: <span th:text="${openedReturn.validationIssues.size()}"></span></p>
+        <p>
+            <a th:href="@{|/returns/${openedReturn.id}/wizard/${openedReturn.currentInterviewStep.routeSegment}|}">Interview fortsetzen</a>
+            <span> | </span>
+            <a th:href="@{|/returns/${openedReturn.id}/wizard/pruefung|}">Zur Pruefung</a>
+        </p>
+        <div th:if="${openedReturn.exportBundle != null}">
+            <p th:if="${openedReturn.exportBundle.pdfPath != null}">Letzte PDF: <span th:text="${openedReturn.exportBundle.pdfPath}"></span></p>
+            <p th:if="${openedReturn.exportBundle.elsterExportPath != null}">Letzter strukturierter Export: <span th:text="${openedReturn.exportBundle.elsterExportPath}"></span></p>
         </div>
     </section>
 
     <section id="disclaimer">
-        <h2>Hinweis</h2>
-        <p>Diese Anwendung hilft bei der Vorbereitung einer deutschen Steuererklärung für 2025. Sie ersetzt keine steuerliche oder rechtliche Beratung.</p>
+        <h2>Lokaler Datenschutz und Grenzen</h2>
+        <p>Diese Anwendung hilft bei der Vorbereitung einer deutschen Steuererklaerung fuer 2025. Sie ersetzt keine steuerliche oder rechtliche Beratung und fuehrt keine amtliche ELSTER-Uebermittlung aus.</p>
+        <p>Exporte werden nur auf ausdrueckliche Aktion erzeugt. Es gibt keine versteckten Netzwerkaufrufe im normalen Nutzungsablauf.</p>
     </section>
 </main>
 </body>

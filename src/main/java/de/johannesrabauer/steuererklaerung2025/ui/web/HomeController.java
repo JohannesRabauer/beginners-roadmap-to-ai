@@ -1,9 +1,10 @@
 package de.johannesrabauer.steuererklaerung2025.ui.web;
 
+import de.johannesrabauer.steuererklaerung2025.application.TaxReturnWorkflowService;
 import de.johannesrabauer.steuererklaerung2025.domain.model.FilingMode;
+import de.johannesrabauer.steuererklaerung2025.domain.model.InterviewStep;
 import de.johannesrabauer.steuererklaerung2025.domain.model.ReturnStatus;
 import de.johannesrabauer.steuererklaerung2025.domain.model.TaxReturnEntity;
-import de.johannesrabauer.steuererklaerung2025.domain.port.TaxReturnRepository;
 import java.util.Arrays;
 import java.time.Instant;
 import java.util.Optional;
@@ -20,15 +21,15 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @Controller
 public class HomeController {
 
-    private final TaxReturnRepository taxReturnRepository;
+    private final TaxReturnWorkflowService workflowService;
     private final String applicationName;
     private final int taxYear;
 
     public HomeController(
-            TaxReturnRepository taxReturnRepository,
+            TaxReturnWorkflowService workflowService,
             @Value("${steuererklaerung.ui-name}") String applicationName,
             @Value("${steuererklaerung.tax-year}") int taxYear) {
-        this.taxReturnRepository = taxReturnRepository;
+        this.workflowService = workflowService;
         this.applicationName = applicationName;
         this.taxYear = taxYear;
     }
@@ -37,14 +38,14 @@ public class HomeController {
     public String index(@RequestParam(name = "opened", required = false) UUID openedReturnId, Model model) {
         Optional<TaxReturnEntity> openedReturn = Optional.empty();
         if (openedReturnId != null) {
-            openedReturn = taxReturnRepository.findById(openedReturnId)
+            openedReturn = workflowService.findById(openedReturnId)
                     .filter(taxReturn -> taxReturn.getTaxYear() == taxYear);
         }
 
         model.addAttribute("applicationName", applicationName);
         model.addAttribute("taxYear", taxYear);
         model.addAttribute("filingModes", FilingMode.values());
-        model.addAttribute("returns", taxReturnRepository.findAllByTaxYear(taxYear));
+        model.addAttribute("returns", workflowService.findAllByTaxYear());
         model.addAttribute("openedReturn", openedReturn.orElse(null));
         return "home";
     }
@@ -63,7 +64,7 @@ public class HomeController {
             return "redirect:/";
         }
 
-        TaxReturnEntity saved = taxReturnRepository.save(createDraftTaxReturn(filingMode.get()));
+        TaxReturnEntity saved = workflowService.createReturn(filingMode.get());
         redirectAttributes.addFlashAttribute("message", "Steuerfall wurde angelegt.");
         return "redirect:/?opened=" + saved.getId();
     }
@@ -75,7 +76,7 @@ public class HomeController {
             redirectAttributes.addFlashAttribute("error", "Steuerfall wurde nicht gefunden.");
             return "redirect:/";
         }
-        return "redirect:/?opened=" + returnId;
+        return "redirect:/returns/" + returnId + "/wizard/" + taxReturn.get().getCurrentInterviewStep().getRouteSegment();
     }
 
     @PostMapping("/returns/{returnId}/complete")
@@ -87,7 +88,9 @@ public class HomeController {
         }
 
         TaxReturnEntity entity = taxReturn.get();
-        updateStatus(entity, ReturnStatus.COMPLETED, Instant.now());
+        entity.setStatus(ReturnStatus.COMPLETED);
+        entity.setCompletedAt(Instant.now());
+        workflowService.markCompleted(returnId);
 
         redirectAttributes.addFlashAttribute("message", "Steuerfall als abgeschlossen markiert.");
         return "redirect:/?opened=" + returnId;
@@ -102,7 +105,9 @@ public class HomeController {
         }
 
         TaxReturnEntity entity = taxReturn.get();
-        updateStatus(entity, ReturnStatus.DRAFT, null);
+        entity.setStatus(ReturnStatus.DRAFT);
+        entity.setCompletedAt(null);
+        workflowService.markDraft(returnId);
 
         redirectAttributes.addFlashAttribute("message", "Steuerfall wieder als Entwurf markiert.");
         return "redirect:/?opened=" + returnId;
@@ -116,22 +121,16 @@ public class HomeController {
         return filingMode.getGermanLabel();
     }
 
-    private TaxReturnEntity createDraftTaxReturn(FilingMode filingMode) {
-        TaxReturnEntity taxReturn = new TaxReturnEntity();
-        taxReturn.setTaxYear(taxYear);
-        taxReturn.setFilingMode(filingMode);
-        taxReturn.setStatus(ReturnStatus.DRAFT);
-        return taxReturn;
+    public String interviewStepLabel(InterviewStep interviewStep) {
+        return interviewStep.getGermanLabel();
+    }
+
+    public String interviewStepStatusLabel(ReturnStatus status) {
+        return status.getGermanLabel();
     }
 
     private Optional<TaxReturnEntity> findReturnForCurrentYear(UUID returnId) {
-        return taxReturnRepository.findById(returnId)
+        return workflowService.findById(returnId)
                 .filter(taxReturn -> taxReturn.getTaxYear() == taxYear);
-    }
-
-    private void updateStatus(TaxReturnEntity taxReturn, ReturnStatus status, Instant completedAt) {
-        taxReturn.setStatus(status);
-        taxReturn.setCompletedAt(completedAt);
-        taxReturnRepository.save(taxReturn);
     }
 }

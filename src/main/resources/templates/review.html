@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="de" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${applicationName} + ' - Pruefung'">Pruefung</title>
+</head>
+<body>
+<main>
+    <header>
+        <h1>Pruefung, Zusammenfassung und lokale Exporte</h1>
+        <p>Steuerfall <span th:text="${taxReturn.id}"></span></p>
+        <p>Fehler: <strong th:text="${errorCount}"></strong> | Hinweise: <strong th:text="${warningCount}"></strong></p>
+        <p th:if="${reviewSummary.exportReady}">Der Steuerfall ist exportbereit.</p>
+        <p th:unless="${reviewSummary.exportReady}">Bitte beheben Sie die verbleibenden Fehler vor dem Export.</p>
+        <p><a href="/">Zur Uebersicht</a></p>
+    </header>
+
+    <section>
+        <h2>Abschnittsweise Pruefung</h2>
+        <article th:each="section : ${reviewSummary.sections}">
+            <h3 th:text="${section.title}"></h3>
+            <p><a th:href="@{|/returns/${taxReturn.id}/wizard/${section.sourceStep.routeSegment}|}">Abschnitt bearbeiten</a></p>
+            <ul>
+                <li th:each="line : ${section.lines}" th:text="${line}"></li>
+            </ul>
+        </article>
+    </section>
+
+    <section>
+        <h2>Validierung</h2>
+        <ul>
+            <li th:if="${#lists.isEmpty(validationIssues)}">Keine offenen Hinweise.</li>
+            <li th:each="issue : ${validationIssues}">
+                <strong th:text="${@taxReturnWizardController.severityLabel(issue.severity)}"></strong>
+                <span th:text="${issue.message}"></span>
+                <code th:text="${issue.fieldPath}"></code>
+            </li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>Regelspur 2025</h2>
+        <ul>
+            <li th:each="trace : ${reviewSummary.calculation.traces}">
+                <strong th:text="${trace.ruleCode}"></strong>
+                <span th:text="${trace.description}"></span>
+                <div>Ergebnis: <span th:text="${trace.result}"></span> EUR</div>
+                <div>Eingaenge: <span th:text="${#strings.listJoin(trace.inputPaths, ', ')}"></span></div>
+            </li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>Lokale Exporte und Datenschutz</h2>
+        <p>PDF- und JSON-Exporte werden nur durch Ihre ausdrueckliche Aktion lokal im Exportverzeichnis erzeugt. Die Anwendung fuehrt keine amtliche ELSTER-Uebermittlung und keine stillen Netzwerkanfragen aus.</p>
+        <form method="post" th:action="@{|/returns/${taxReturn.id}/exports/pdf|}">
+            <button type="submit">PDF-Zusammenfassung erzeugen</button>
+        </form>
+        <form method="post" th:action="@{|/returns/${taxReturn.id}/exports/elster|}">
+            <button type="submit">Strukturierten ELSTER-Export erzeugen</button>
+        </form>
+        <p th:if="${taxReturn.exportBundle != null and taxReturn.exportBundle.pdfPath != null}">Letzte PDF: <span th:text="${taxReturn.exportBundle.pdfPath}"></span></p>
+        <p th:if="${taxReturn.exportBundle != null and taxReturn.exportBundle.elsterExportPath != null}">Letzter strukturierter Export: <span th:text="${taxReturn.exportBundle.elsterExportPath}"></span></p>
+    </section>
+
+    <section>
+        <h2>Abschluss und Loeschung</h2>
+        <form method="post" th:if="${taxReturn.status.name() == 'DRAFT'}" th:action="@{|/returns/${taxReturn.id}/review/complete|}">
+            <button type="submit" th:disabled="${!reviewSummary.exportReady}">Als abgeschlossen markieren</button>
+        </form>
+        <form method="post" th:if="${taxReturn.status.name() == 'COMPLETED'}" th:action="@{|/returns/${taxReturn.id}/review/resume|}">
+            <button type="submit">Wieder als Entwurf oeffnen</button>
+        </form>
+        <form method="post" th:action="@{|/returns/${taxReturn.id}/delete|}">
+            <button type="submit">Lokalen Steuerfall loeschen</button>
+        </form>
+        <p>Hinweis: Das Loeschen entfernt die lokal gespeicherten Daten dieses Steuerfalls unwiderruflich. Eine Passphrase-Wiederherstellung ist weiterhin nicht moeglich.</p>
+    </section>
+</main>
+</body>
+</html>

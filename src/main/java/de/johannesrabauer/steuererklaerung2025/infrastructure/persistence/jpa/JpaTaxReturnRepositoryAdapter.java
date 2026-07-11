@@ -30,4 +30,9 @@ public class JpaTaxReturnRepositoryAdapter implements TaxReturnRepository {
     public Optional<TaxReturnEntity> findById(UUID id) {
         return repository.findById(id);
     }
+
+    @Override
+    public void delete(TaxReturnEntity taxReturn) {
+        repository.delete(taxReturn);
+    }
 }

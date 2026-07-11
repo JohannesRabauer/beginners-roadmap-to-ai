@@ -10,6 +10,7 @@ import de.johannesrabauer.steuererklaerung2025.domain.model.PersonRole;
 import de.johannesrabauer.steuererklaerung2025.domain.model.ReturnStatus;
 import de.johannesrabauer.steuererklaerung2025.domain.model.TaxReturnEntity;
 import de.johannesrabauer.steuererklaerung2025.domain.model.ValidationIssueEntity;
+import de.johannesrabauer.steuererklaerung2025.domain.model.ValidationSeverity;
 import de.johannesrabauer.steuererklaerung2025.domain.model.WageTaxCertificateEntity;
 import de.johannesrabauer.steuererklaerung2025.domain.port.TaxReturnRepository;
 import de.johannesrabauer.steuererklaerung2025.infrastructure.security.PassphraseService;
@@ -131,7 +132,7 @@ class TaxReturnPersistenceIntegrationTest {
         taxReturn.addDeductionItem(deduction);
 
         ValidationIssueEntity issue = new ValidationIssueEntity();
-        issue.setSeverity("WARNING");
+        issue.setSeverity(ValidationSeverity.WARNING);
         issue.setFieldPath("persons[1].taxId");
         issue.setMessage("Tax ID should be checked before export.");
         taxReturn.addValidationIssue(issue);

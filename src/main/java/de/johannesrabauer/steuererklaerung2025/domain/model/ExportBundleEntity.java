@@ -21,6 +21,10 @@ public class ExportBundleEntity extends AuditableEntity {
     @Column(name = "pdf_path", columnDefinition = "clob")
     private String pdfPath;
 
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(name = "elster_export_path", columnDefinition = "clob")
+    private String elsterExportPath;
+
     @Column(name = "elster_shape_version", nullable = false, length = 32)
     private String elsterShapeVersion;
 
@@ -41,6 +45,14 @@ public class ExportBundleEntity extends AuditableEntity {
 
     public void setPdfPath(String pdfPath) {
         this.pdfPath = pdfPath;
+    }
+
+    public String getElsterExportPath() {
+        return elsterExportPath;
+    }
+
+    public void setElsterExportPath(String elsterExportPath) {
+        this.elsterExportPath = elsterExportPath;
     }
 
     public String getElsterShapeVersion() {
