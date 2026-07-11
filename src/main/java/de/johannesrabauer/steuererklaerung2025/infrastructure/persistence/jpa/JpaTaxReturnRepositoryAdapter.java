@@ -2,6 +2,7 @@ package de.johannesrabauer.steuererklaerung2025.infrastructure.persistence.jpa;
 
 import de.johannesrabauer.steuererklaerung2025.domain.model.TaxReturnEntity;
 import de.johannesrabauer.steuererklaerung2025.domain.port.TaxReturnRepository;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Repository;
@@ -18,6 +19,11 @@ public class JpaTaxReturnRepositoryAdapter implements TaxReturnRepository {
     @Override
     public TaxReturnEntity save(TaxReturnEntity taxReturn) {
         return repository.save(taxReturn);
+    }
+
+    @Override
+    public List<TaxReturnEntity> findAllByTaxYear(int taxYear) {
+        return repository.findAllByTaxYearOrderByUpdatedAtDesc(taxYear);
     }
 
     @Override
