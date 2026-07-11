@@ -63,7 +63,9 @@ public class EncryptionService {
             return null;
         }
         if (!encryptedValue.startsWith(ENCRYPTION_PREFIX)) {
-            throw new IllegalStateException("Stored tax data uses an unsupported encryption format.");
+            String preview = encryptedValue.substring(0, Math.min(encryptedValue.length(), 20));
+            throw new IllegalStateException("Stored tax data uses an unsupported encryption format. Expected prefix '"
+                    + ENCRYPTION_PREFIX + "' but found '" + preview + "'.");
         }
 
         byte[] payload = Base64.getDecoder().decode(encryptedValue.substring(ENCRYPTION_PREFIX.length()));

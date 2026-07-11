@@ -21,12 +21,17 @@ import javax.crypto.spec.PBEKeySpec;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class PassphraseService {
 
     private static final int DERIVED_KEY_LENGTH_BITS = 256;
     private static final int SALT_LENGTH_BYTES = 16;
+    private static final int RECOMMENDED_MINIMUM_PASSPHRASE_LENGTH = 12;
+
+    private static final Logger log = LoggerFactory.getLogger(PassphraseService.class);
 
     private final Path passphraseFile;
     private final int minimumPassphraseLength;
@@ -45,6 +50,12 @@ public class PassphraseService {
 
     PassphraseService(Path passphraseFile, int minimumPassphraseLength, int keyDerivationIterations, SecureRandom secureRandom) {
         this.passphraseFile = Objects.requireNonNull(passphraseFile, "passphraseFile must not be null");
+        if (minimumPassphraseLength < RECOMMENDED_MINIMUM_PASSPHRASE_LENGTH) {
+            throw new IllegalArgumentException("The configured minimum passphrase length must be at least 12 characters.");
+        }
+        if (keyDerivationIterations <= 0) {
+            throw new IllegalArgumentException("The key derivation iteration count must be positive.");
+        }
         this.minimumPassphraseLength = minimumPassphraseLength;
         this.keyDerivationIterations = keyDerivationIterations;
         this.secureRandom = Objects.requireNonNull(secureRandom, "secureRandom must not be null");
@@ -180,7 +191,7 @@ public class PassphraseService {
             Set<PosixFilePermission> permissions = PosixFilePermissions.fromString("rw-------");
             Files.setPosixFilePermissions(passphraseFile, permissions);
         } catch (UnsupportedOperationException ignored) {
-            // POSIX permissions are not available on every file system used in tests.
+            log.warn("POSIX file permissions are not supported for {}. Verify that the passphrase file is protected by the operating system.", passphraseFile);
         } catch (IOException exception) {
             throw new IllegalStateException("Failed to protect the application passphrase metadata file.", exception);
         }

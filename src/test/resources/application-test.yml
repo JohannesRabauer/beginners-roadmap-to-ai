@@ -18,4 +18,4 @@ spring:
 steuererklaerung:
   security:
     minimum-passphrase-length: 12
-    key-derivation-iterations: 10000
+    key-derivation-iterations: 100000
