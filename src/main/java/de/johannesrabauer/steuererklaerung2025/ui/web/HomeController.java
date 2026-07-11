@@ -61,20 +61,15 @@ public class HomeController {
             return "redirect:/";
         }
 
-        TaxReturnEntity taxReturn = new TaxReturnEntity();
-        taxReturn.setTaxYear(taxYear);
-        taxReturn.setFilingMode(filingMode);
-        taxReturn.setStatus(ReturnStatus.DRAFT);
-
-        TaxReturnEntity saved = taxReturnRepository.save(taxReturn);
+        TaxReturnEntity saved = taxReturnRepository.save(createDraftTaxReturn(filingMode));
         redirectAttributes.addFlashAttribute("message", "Steuerfall wurde angelegt.");
         return "redirect:/?opened=" + saved.getId();
     }
 
     @GetMapping("/returns/{returnId}")
     public String openReturn(@PathVariable("returnId") UUID returnId, RedirectAttributes redirectAttributes) {
-        Optional<TaxReturnEntity> taxReturn = taxReturnRepository.findById(returnId);
-        if (taxReturn.isEmpty() || taxReturn.get().getTaxYear() != taxYear) {
+        Optional<TaxReturnEntity> taxReturn = findReturnForCurrentYear(returnId);
+        if (taxReturn.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", "Steuerfall wurde nicht gefunden.");
             return "redirect:/";
         }
@@ -83,8 +78,8 @@ public class HomeController {
 
     @PostMapping("/returns/{returnId}/complete")
     public String markCompleted(@PathVariable("returnId") UUID returnId, RedirectAttributes redirectAttributes) {
-        Optional<TaxReturnEntity> taxReturn = taxReturnRepository.findById(returnId);
-        if (taxReturn.isEmpty() || taxReturn.get().getTaxYear() != taxYear) {
+        Optional<TaxReturnEntity> taxReturn = findReturnForCurrentYear(returnId);
+        if (taxReturn.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", "Steuerfall wurde nicht gefunden.");
             return "redirect:/";
         }
@@ -100,8 +95,8 @@ public class HomeController {
 
     @PostMapping("/returns/{returnId}/resume")
     public String markDraft(@PathVariable("returnId") UUID returnId, RedirectAttributes redirectAttributes) {
-        Optional<TaxReturnEntity> taxReturn = taxReturnRepository.findById(returnId);
-        if (taxReturn.isEmpty() || taxReturn.get().getTaxYear() != taxYear) {
+        Optional<TaxReturnEntity> taxReturn = findReturnForCurrentYear(returnId);
+        if (taxReturn.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", "Steuerfall wurde nicht gefunden.");
             return "redirect:/";
         }
@@ -127,5 +122,18 @@ public class HomeController {
             case SINGLE -> "Einzelveranlagung";
             case JOINT -> "Gemeinsame Veranlagung";
         };
+    }
+
+    private TaxReturnEntity createDraftTaxReturn(FilingMode filingMode) {
+        TaxReturnEntity taxReturn = new TaxReturnEntity();
+        taxReturn.setTaxYear(taxYear);
+        taxReturn.setFilingMode(filingMode);
+        taxReturn.setStatus(ReturnStatus.DRAFT);
+        return taxReturn;
+    }
+
+    private Optional<TaxReturnEntity> findReturnForCurrentYear(UUID returnId) {
+        return taxReturnRepository.findById(returnId)
+                .filter(taxReturn -> taxReturn.getTaxYear() == taxYear);
     }
 }

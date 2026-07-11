@@ -139,11 +139,11 @@ class HomePageIntegrationTest {
                 .andExpect(status().is3xxRedirection())
                 .andReturn();
 
-        org.springframework.mock.web.MockHttpSession session =
+        org.springframework.mock.web.MockHttpSession testSession =
                 (org.springframework.mock.web.MockHttpSession) setupResult.getRequest().getSession(false);
 
         MvcResult createResult = mockMvc.perform(post("/returns")
-                        .session(session)
+                        .session(testSession)
                         .param("filingMode", "JOINT"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrlPattern("/?opened=*"))
@@ -152,28 +152,28 @@ class HomePageIntegrationTest {
         String redirectUrl = createResult.getResponse().getRedirectedUrl();
         String returnId = redirectUrl.substring(redirectUrl.indexOf("opened=") + 7);
 
-        mockMvc.perform(get("/").session(session))
+        mockMvc.perform(get("/").session(testSession))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Gemeinsame Veranlagung")))
                 .andExpect(content().string(containsString("Entwurf")));
 
-        mockMvc.perform(get("/returns/" + returnId).session(session))
+        mockMvc.perform(get("/returns/" + returnId).session(testSession))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/?opened=" + returnId));
 
-        mockMvc.perform(post("/returns/" + returnId + "/complete").session(session))
+        mockMvc.perform(post("/returns/" + returnId + "/complete").session(testSession))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/?opened=" + returnId));
 
-        mockMvc.perform(get("/?opened=" + returnId).session(session))
+        mockMvc.perform(get("/?opened=" + returnId).session(testSession))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Abgeschlossen")));
 
-        mockMvc.perform(post("/returns/" + returnId + "/resume").session(session))
+        mockMvc.perform(post("/returns/" + returnId + "/resume").session(testSession))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/?opened=" + returnId));
 
-        mockMvc.perform(get("/?opened=" + returnId).session(session))
+        mockMvc.perform(get("/?opened=" + returnId).session(testSession))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Entwurf")))
                 .andExpect(content().string(matchesRegex("(?s).*id=\\\"opened-return-id\\\">\\Q" + returnId + "\\E<.*")));
