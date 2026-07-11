@@ -9,6 +9,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface SpringDataTaxReturnRepository extends JpaRepository<TaxReturnEntity, UUID> {
 
+    @EntityGraph(attributePaths = {
+            "validationIssues",
+            "exportBundle"
+    })
     List<TaxReturnEntity> findAllByTaxYearOrderByUpdatedAtDesc(int taxYear);
 
     @EntityGraph(attributePaths = {

@@ -12,4 +12,6 @@ public interface TaxReturnRepository {
     List<TaxReturnEntity> findAllByTaxYear(int taxYear);
 
     Optional<TaxReturnEntity> findById(UUID id);
+
+    void delete(TaxReturnEntity taxReturn);
 }

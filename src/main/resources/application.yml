@@ -28,6 +28,8 @@ steuererklaerung:
     passphrase-file: ./data/passphrase.properties
     minimum-passphrase-length: 12
     key-derivation-iterations: 600000
+  exports:
+    directory: ./data/exports
 
 ---
 spring:

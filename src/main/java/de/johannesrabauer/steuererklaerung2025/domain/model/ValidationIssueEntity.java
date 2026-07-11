@@ -4,6 +4,8 @@ import de.johannesrabauer.steuererklaerung2025.infrastructure.security.Encrypted
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -17,8 +19,9 @@ public class ValidationIssueEntity extends AuditableEntity {
     @JoinColumn(name = "tax_return_id", nullable = false)
     private TaxReturnEntity taxReturn;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 16)
-    private String severity;
+    private ValidationSeverity severity;
 
     @Convert(converter = EncryptedStringConverter.class)
     @Column(name = "field_path", nullable = false, columnDefinition = "clob")
@@ -36,11 +39,11 @@ public class ValidationIssueEntity extends AuditableEntity {
         this.taxReturn = taxReturn;
     }
 
-    public String getSeverity() {
+    public ValidationSeverity getSeverity() {
         return severity;
     }
 
-    public void setSeverity(String severity) {
+    public void setSeverity(ValidationSeverity severity) {
         this.severity = severity;
     }
 

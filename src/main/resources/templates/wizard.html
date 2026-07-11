@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="de" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${applicationName} + ' - ' + ${step.germanLabel}">Interview</title>
+</head>
+<body>
+<main>
+    <header>
+        <h1 th:text="${applicationName}">Steuererklaerung 2025 Assistant</h1>
+        <p>Steuerfall <span th:text="${taxReturn.id}"></span> - <span th:text="${step.germanLabel}"></span></p>
+        <p th:text="${step.explanation}"></p>
+        <p>Fortschritt: <strong th:text="${progressPercent} + '%'">0%</strong></p>
+        <p><a href="/">Zur Uebersicht</a> | <a th:href="@{|/returns/${taxReturn.id}/wizard/pruefung|}">Direkt zur Pruefung</a></p>
+        <p th:if="${message}" th:text="${message}"></p>
+        <p th:if="${error}" th:text="${error}"></p>
+    </header>
+
+    <section>
+        <h2>Interview-Navigation</h2>
+        <ul>
+            <li th:each="stepStatus : ${stepStatuses}">
+                <a th:href="@{|/returns/${taxReturn.id}/wizard/${stepStatus.step.routeSegment}|}"
+                   th:text="${stepStatus.step.germanLabel} + ' - ' + ${stepStatus.status}"></a>
+            </li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>Validierung</h2>
+        <p>Fehler: <span th:text="${errorCount}"></span> | Hinweise: <span th:text="${warningCount}"></span></p>
+        <ul>
+            <li th:if="${#lists.isEmpty(validationIssues)}">Noch keine Validierungshinweise.</li>
+            <li th:each="issue : ${validationIssues}">
+                <strong th:text="${@taxReturnWizardController.severityLabel(issue.severity)}"></strong>
+                <span th:text="${issue.message}"></span>
+                <code th:text="${issue.fieldPath}"></code>
+            </li>
+        </ul>
+    </section>
+
+    <form method="post" th:action="@{|/returns/${taxReturn.id}/wizard/${step.routeSegment}|}">
+        <section th:if="${step.name() == 'BASE_DATA'}">
+            <h2>Basisdaten</h2>
+            <fieldset>
+                <legend>Steuerpflichtige Person</legend>
+                <label for="taxpayerFirstName">Vorname</label>
+                <input id="taxpayerFirstName" name="taxpayerFirstName" type="text" th:value="${taxpayer != null ? taxpayer.firstName : ''}">
+                <label for="taxpayerLastName">Nachname</label>
+                <input id="taxpayerLastName" name="taxpayerLastName" type="text" th:value="${taxpayer != null ? taxpayer.lastName : ''}">
+                <label for="taxpayerTaxId">Steuer-ID</label>
+                <input id="taxpayerTaxId" name="taxpayerTaxId" type="text" th:value="${taxpayer != null ? taxpayer.taxId : ''}">
+                <label for="taxpayerMaritalStatus">Familienstand</label>
+                <input id="taxpayerMaritalStatus" name="taxpayerMaritalStatus" type="text" th:value="${taxpayer != null ? taxpayer.maritalStatus : ''}">
+            </fieldset>
+
+            <fieldset th:if="${@taxReturnWizardController.hasRole(taxReturn, T(de.johannesrabauer.steuererklaerung2025.domain.model.PersonRole).SPOUSE)}">
+                <legend>Ehepartner/in</legend>
+                <label for="spouseFirstName">Vorname</label>
+                <input id="spouseFirstName" name="spouseFirstName" type="text" th:value="${spouse != null ? spouse.firstName : ''}">
+                <label for="spouseLastName">Nachname</label>
+                <input id="spouseLastName" name="spouseLastName" type="text" th:value="${spouse != null ? spouse.lastName : ''}">
+                <label for="spouseTaxId">Steuer-ID</label>
+                <input id="spouseTaxId" name="spouseTaxId" type="text" th:value="${spouse != null ? spouse.taxId : ''}">
+                <label for="spouseMaritalStatus">Familienstand</label>
+                <input id="spouseMaritalStatus" name="spouseMaritalStatus" type="text" th:value="${spouse != null ? spouse.maritalStatus : ''}">
+            </fieldset>
+
+            <fieldset>
+                <legend>Anschrift und Erstattung</legend>
+                <label for="streetAddress">Strasse und Hausnummer</label>
+                <input id="streetAddress" name="streetAddress" type="text" th:value="${taxReturn.streetAddress}">
+                <label for="postalCode">Postleitzahl</label>
+                <input id="postalCode" name="postalCode" type="text" th:value="${taxReturn.postalCode}">
+                <label for="city">Ort</label>
+                <input id="city" name="city" type="text" th:value="${taxReturn.city}">
+                <label for="taxOffice">Finanzamt</label>
+                <input id="taxOffice" name="taxOffice" type="text" th:value="${taxReturn.taxOffice}">
+                <label for="bankAccountHolder">Kontoinhaber/in</label>
+                <input id="bankAccountHolder" name="bankAccountHolder" type="text" th:value="${taxReturn.bankAccountHolder}">
+                <label for="iban">IBAN</label>
+                <input id="iban" name="iban" type="text" th:value="${taxReturn.iban}">
+            </fieldset>
+        </section>
+
+        <section th:if="${step.name() == 'INCOME'}">
+            <h2>Lohnsteuerbescheinigungen</h2>
+            <p>Pro Person wird immer eine leere Zusatzzeile angezeigt. Fuellen Sie weitere Zeilen aus, wenn mehrere Arbeitgeber vorlagen.</p>
+            <table>
+                <thead>
+                <tr>
+                    <th>Person</th>
+                    <th>Arbeitgeber</th>
+                    <th>Bruttoarbeitslohn</th>
+                    <th>Lohnsteuer</th>
+                    <th>Soli</th>
+                    <th>Kirchensteuer</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="row : ${incomeRows}">
+                    <td>
+                        <select name="incomeRole">
+                            <option value="TAXPAYER" th:selected="${row.role.name() == 'TAXPAYER'}">Steuerpflichtige Person</option>
+                            <option value="SPOUSE"
+                                    th:if="${@taxReturnWizardController.hasRole(taxReturn, T(de.johannesrabauer.steuererklaerung2025.domain.model.PersonRole).SPOUSE)}"
+                                    th:selected="${row.role.name() == 'SPOUSE'}">Ehepartner/in</option>
+                        </select>
+                    </td>
+                    <td><input name="incomeEmployerName" type="text" th:value="${row.employerName}"></td>
+                    <td><input name="incomeGrossWages" type="text" th:value="${row.grossWages}"></td>
+                    <td><input name="incomeWageTax" type="text" th:value="${row.wageTax}"></td>
+                    <td><input name="incomeSolidaritySurcharge" type="text" th:value="${row.solidaritySurcharge}"></td>
+                    <td><input name="incomeChurchTax" type="text" th:value="${row.churchTax}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section th:if="${step.name() == 'WORK_EXPENSES'}">
+            <h2>Werbungskosten / Anlage N</h2>
+            <fieldset>
+                <legend>Steuerpflichtige Person</legend>
+                <label for="taxpayerCommute">Pendlerpauschale</label>
+                <input id="taxpayerCommute" name="taxpayerCommute" type="text" th:value="${workValues['TAXPAYER_COMMUTE']}">
+                <label for="taxpayerCommuteEvidence">Belegstatus</label>
+                <input id="taxpayerCommuteEvidence" name="taxpayerCommuteEvidence" type="text" th:value="${workEvidence['TAXPAYER_COMMUTE']}">
+                <label for="taxpayerTravel">Reisekosten</label>
+                <input id="taxpayerTravel" name="taxpayerTravel" type="text" th:value="${workValues['TAXPAYER_TRAVEL']}">
+                <label for="taxpayerTravelEvidence">Belegstatus</label>
+                <input id="taxpayerTravelEvidence" name="taxpayerTravelEvidence" type="text" th:value="${workEvidence['TAXPAYER_TRAVEL']}">
+                <label for="taxpayerEquipment">Arbeitsmittel</label>
+                <input id="taxpayerEquipment" name="taxpayerEquipment" type="text" th:value="${workValues['TAXPAYER_EQUIPMENT']}">
+                <label for="taxpayerEquipmentEvidence">Belegstatus</label>
+                <input id="taxpayerEquipmentEvidence" name="taxpayerEquipmentEvidence" type="text" th:value="${workEvidence['TAXPAYER_EQUIPMENT']}">
+                <label for="taxpayerUnionFees">Gewerkschaft / Berufsverband</label>
+                <input id="taxpayerUnionFees" name="taxpayerUnionFees" type="text" th:value="${workValues['TAXPAYER_UNION_FEES']}">
+                <label for="taxpayerUnionFeesEvidence">Belegstatus</label>
+                <input id="taxpayerUnionFeesEvidence" name="taxpayerUnionFeesEvidence" type="text" th:value="${workEvidence['TAXPAYER_UNION_FEES']}">
+            </fieldset>
+            <fieldset th:if="${spouse != null}">
+                <legend>Ehepartner/in</legend>
+                <label for="spouseCommute">Pendlerpauschale</label>
+                <input id="spouseCommute" name="spouseCommute" type="text" th:value="${workValues['SPOUSE_COMMUTE']}">
+                <label for="spouseCommuteEvidence">Belegstatus</label>
+                <input id="spouseCommuteEvidence" name="spouseCommuteEvidence" type="text" th:value="${workEvidence['SPOUSE_COMMUTE']}">
+                <label for="spouseTravel">Reisekosten</label>
+                <input id="spouseTravel" name="spouseTravel" type="text" th:value="${workValues['SPOUSE_TRAVEL']}">
+                <label for="spouseTravelEvidence">Belegstatus</label>
+                <input id="spouseTravelEvidence" name="spouseTravelEvidence" type="text" th:value="${workEvidence['SPOUSE_TRAVEL']}">
+                <label for="spouseEquipment">Arbeitsmittel</label>
+                <input id="spouseEquipment" name="spouseEquipment" type="text" th:value="${workValues['SPOUSE_EQUIPMENT']}">
+                <label for="spouseEquipmentEvidence">Belegstatus</label>
+                <input id="spouseEquipmentEvidence" name="spouseEquipmentEvidence" type="text" th:value="${workEvidence['SPOUSE_EQUIPMENT']}">
+                <label for="spouseUnionFees">Gewerkschaft / Berufsverband</label>
+                <input id="spouseUnionFees" name="spouseUnionFees" type="text" th:value="${workValues['SPOUSE_UNION_FEES']}">
+                <label for="spouseUnionFeesEvidence">Belegstatus</label>
+                <input id="spouseUnionFeesEvidence" name="spouseUnionFeesEvidence" type="text" th:value="${workEvidence['SPOUSE_UNION_FEES']}">
+            </fieldset>
+        </section>
+
+        <section th:if="${step.name() == 'INSURANCE'}">
+            <h2>Vorsorgeaufwand</h2>
+            <fieldset>
+                <legend>Steuerpflichtige Person</legend>
+                <label for="taxpayerPension">Rentenversicherung</label>
+                <input id="taxpayerPension" name="taxpayerPension" type="text" th:value="${insuranceValues['TAXPAYER_PENSION']}">
+                <label for="taxpayerPensionEvidence">Belegstatus</label>
+                <input id="taxpayerPensionEvidence" name="taxpayerPensionEvidence" type="text" th:value="${insuranceEvidence['TAXPAYER_PENSION']}">
+                <label for="taxpayerHealth">Krankenversicherung</label>
+                <input id="taxpayerHealth" name="taxpayerHealth" type="text" th:value="${insuranceValues['TAXPAYER_HEALTH']}">
+                <label for="taxpayerHealthEvidence">Belegstatus</label>
+                <input id="taxpayerHealthEvidence" name="taxpayerHealthEvidence" type="text" th:value="${insuranceEvidence['TAXPAYER_HEALTH']}">
+                <label for="taxpayerUnemployment">Arbeitslosenversicherung</label>
+                <input id="taxpayerUnemployment" name="taxpayerUnemployment" type="text" th:value="${insuranceValues['TAXPAYER_UNEMPLOYMENT']}">
+                <label for="taxpayerUnemploymentEvidence">Belegstatus</label>
+                <input id="taxpayerUnemploymentEvidence" name="taxpayerUnemploymentEvidence" type="text" th:value="${insuranceEvidence['TAXPAYER_UNEMPLOYMENT']}">
+                <label for="taxpayerLiability">Haftpflicht / sonstige Versicherung</label>
+                <input id="taxpayerLiability" name="taxpayerLiability" type="text" th:value="${insuranceValues['TAXPAYER_LIABILITY']}">
+                <label for="taxpayerLiabilityEvidence">Belegstatus</label>
+                <input id="taxpayerLiabilityEvidence" name="taxpayerLiabilityEvidence" type="text" th:value="${insuranceEvidence['TAXPAYER_LIABILITY']}">
+            </fieldset>
+            <fieldset th:if="${spouse != null}">
+                <legend>Ehepartner/in</legend>
+                <label for="spousePension">Rentenversicherung</label>
+                <input id="spousePension" name="spousePension" type="text" th:value="${insuranceValues['SPOUSE_PENSION']}">
+                <label for="spousePensionEvidence">Belegstatus</label>
+                <input id="spousePensionEvidence" name="spousePensionEvidence" type="text" th:value="${insuranceEvidence['SPOUSE_PENSION']}">
+                <label for="spouseHealth">Krankenversicherung</label>
+                <input id="spouseHealth" name="spouseHealth" type="text" th:value="${insuranceValues['SPOUSE_HEALTH']}">
+                <label for="spouseHealthEvidence">Belegstatus</label>
+                <input id="spouseHealthEvidence" name="spouseHealthEvidence" type="text" th:value="${insuranceEvidence['SPOUSE_HEALTH']}">
+                <label for="spouseUnemployment">Arbeitslosenversicherung</label>
+                <input id="spouseUnemployment" name="spouseUnemployment" type="text" th:value="${insuranceValues['SPOUSE_UNEMPLOYMENT']}">
+                <label for="spouseUnemploymentEvidence">Belegstatus</label>
+                <input id="spouseUnemploymentEvidence" name="spouseUnemploymentEvidence" type="text" th:value="${insuranceEvidence['SPOUSE_UNEMPLOYMENT']}">
+                <label for="spouseLiability">Haftpflicht / sonstige Versicherung</label>
+                <input id="spouseLiability" name="spouseLiability" type="text" th:value="${insuranceValues['SPOUSE_LIABILITY']}">
+                <label for="spouseLiabilityEvidence">Belegstatus</label>
+                <input id="spouseLiabilityEvidence" name="spouseLiabilityEvidence" type="text" th:value="${insuranceEvidence['SPOUSE_LIABILITY']}">
+            </fieldset>
+        </section>
+
+        <section th:if="${step.name() == 'SPECIAL_EXPENSES'}">
+            <h2>Sonderausgaben</h2>
+            <fieldset>
+                <legend>Steuerpflichtige Person</legend>
+                <label for="taxpayerDonations">Spenden</label>
+                <input id="taxpayerDonations" name="taxpayerDonations" type="text" th:value="${specialValues['TAXPAYER_DONATIONS']}">
+                <label for="taxpayerDonationsEvidence">Belegstatus</label>
+                <input id="taxpayerDonationsEvidence" name="taxpayerDonationsEvidence" type="text" th:value="${specialEvidence['TAXPAYER_DONATIONS']}">
+                <label for="taxpayerChurchTax">Kirchensteuer</label>
+                <input id="taxpayerChurchTax" name="taxpayerChurchTax" type="text" th:value="${specialValues['TAXPAYER_CHURCH_TAX']}">
+                <label for="taxpayerChurchTaxEvidence">Belegstatus</label>
+                <input id="taxpayerChurchTaxEvidence" name="taxpayerChurchTaxEvidence" type="text" th:value="${specialEvidence['TAXPAYER_CHURCH_TAX']}">
+                <label for="taxpayerEducation">Weiterbildung / Ausbildung</label>
+                <input id="taxpayerEducation" name="taxpayerEducation" type="text" th:value="${specialValues['TAXPAYER_EDUCATION']}">
+                <label for="taxpayerEducationEvidence">Belegstatus</label>
+                <input id="taxpayerEducationEvidence" name="taxpayerEducationEvidence" type="text" th:value="${specialEvidence['TAXPAYER_EDUCATION']}">
+            </fieldset>
+            <fieldset th:if="${spouse != null}">
+                <legend>Ehepartner/in</legend>
+                <label for="spouseDonations">Spenden</label>
+                <input id="spouseDonations" name="spouseDonations" type="text" th:value="${specialValues['SPOUSE_DONATIONS']}">
+                <label for="spouseDonationsEvidence">Belegstatus</label>
+                <input id="spouseDonationsEvidence" name="spouseDonationsEvidence" type="text" th:value="${specialEvidence['SPOUSE_DONATIONS']}">
+                <label for="spouseChurchTax">Kirchensteuer</label>
+                <input id="spouseChurchTax" name="spouseChurchTax" type="text" th:value="${specialValues['SPOUSE_CHURCH_TAX']}">
+                <label for="spouseChurchTaxEvidence">Belegstatus</label>
+                <input id="spouseChurchTaxEvidence" name="spouseChurchTaxEvidence" type="text" th:value="${specialEvidence['SPOUSE_CHURCH_TAX']}">
+                <label for="spouseEducation">Weiterbildung / Ausbildung</label>
+                <input id="spouseEducation" name="spouseEducation" type="text" th:value="${specialValues['SPOUSE_EDUCATION']}">
+                <label for="spouseEducationEvidence">Belegstatus</label>
+                <input id="spouseEducationEvidence" name="spouseEducationEvidence" type="text" th:value="${specialEvidence['SPOUSE_EDUCATION']}">
+            </fieldset>
+        </section>
+
+        <section th:if="${step.name() == 'HOUSEHOLD_SERVICES'}">
+            <h2>Haushaltsnahe Dienstleistungen</h2>
+            <label for="householdServices">Haushaltsnahe Dienstleistungen</label>
+            <input id="householdServices" name="householdServices" type="text" th:value="${householdValues['HOUSEHOLD_SERVICES']}">
+            <label for="householdServicesEvidence">Belegstatus</label>
+            <input id="householdServicesEvidence" name="householdServicesEvidence" type="text" th:value="${householdEvidence['HOUSEHOLD_SERVICES']}">
+            <label for="craftsmenServices">Handwerkerleistungen</label>
+            <input id="craftsmenServices" name="craftsmenServices" type="text" th:value="${householdValues['CRAFTSMEN_SERVICES']}">
+            <label for="craftsmenServicesEvidence">Belegstatus</label>
+            <input id="craftsmenServicesEvidence" name="craftsmenServicesEvidence" type="text" th:value="${householdEvidence['CRAFTSMEN_SERVICES']}">
+        </section>
+
+        <section th:if="${step.name() == 'EXTRAORDINARY_BURDENS'}">
+            <h2>Aussergewoehnliche Belastungen</h2>
+            <label for="medicalCosts">Krankheitskosten</label>
+            <input id="medicalCosts" name="medicalCosts" type="text" th:value="${extraordinaryValues['MEDICAL_COSTS']}">
+            <label for="medicalCostsEvidence">Belegstatus</label>
+            <input id="medicalCostsEvidence" name="medicalCostsEvidence" type="text" th:value="${extraordinaryEvidence['MEDICAL_COSTS']}">
+            <label for="careCosts">Pflegekosten</label>
+            <input id="careCosts" name="careCosts" type="text" th:value="${extraordinaryValues['CARE_COSTS']}">
+            <label for="careCostsEvidence">Belegstatus</label>
+            <input id="careCostsEvidence" name="careCostsEvidence" type="text" th:value="${extraordinaryEvidence['CARE_COSTS']}">
+            <label for="otherExtraordinaryCosts">Sonstige unterstuetzte Belastungen</label>
+            <input id="otherExtraordinaryCosts" name="otherExtraordinaryCosts" type="text" th:value="${extraordinaryValues['OTHER_EXTRAORDINARY_COSTS']}">
+            <label for="otherExtraordinaryCostsEvidence">Belegstatus</label>
+            <input id="otherExtraordinaryCostsEvidence" name="otherExtraordinaryCostsEvidence" type="text" th:value="${extraordinaryEvidence['OTHER_EXTRAORDINARY_COSTS']}">
+        </section>
+
+        <footer>
+            <button name="navigationAction" type="submit" value="back" th:if="${step.name() != 'BASE_DATA'}">Zurueck</button>
+            <button name="navigationAction" type="submit" value="save">Lokal speichern</button>
+            <button name="navigationAction" type="submit" value="next">Weiter</button>
+        </footer>
+    </form>
+</main>
+</body>
+</html>
