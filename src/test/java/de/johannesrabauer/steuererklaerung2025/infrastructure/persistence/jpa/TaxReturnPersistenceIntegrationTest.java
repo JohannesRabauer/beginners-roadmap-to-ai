@@ -12,15 +12,24 @@ import de.johannesrabauer.steuererklaerung2025.domain.model.TaxReturnEntity;
 import de.johannesrabauer.steuererklaerung2025.domain.model.ValidationIssueEntity;
 import de.johannesrabauer.steuererklaerung2025.domain.model.WageTaxCertificateEntity;
 import de.johannesrabauer.steuererklaerung2025.domain.port.TaxReturnRepository;
+import de.johannesrabauer.steuererklaerung2025.infrastructure.security.PassphraseService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
@@ -28,14 +37,43 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 class TaxReturnPersistenceIntegrationTest {
 
+    private static Path testDirectory;
+    private static Path passphraseFile;
+
     @Autowired
     private TaxReturnRepository taxReturnRepository;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private PassphraseService passphraseService;
+
     @PersistenceContext
     private EntityManager entityManager;
+
+    @DynamicPropertySource
+    static void registerProperties(DynamicPropertyRegistry registry) {
+        registry.add("steuererklaerung.security.passphrase-file", () -> passphraseFile.toString());
+    }
+
+    @BeforeAll
+    static void createTestDirectory() throws IOException {
+        testDirectory = Files.createTempDirectory("steuererklaerung-persistence-test-");
+        passphraseFile = testDirectory.resolve("persistence-passphrase.properties");
+    }
+
+    @AfterAll
+    static void deleteTestDirectory() throws IOException {
+        Files.deleteIfExists(passphraseFile);
+        Files.deleteIfExists(testDirectory);
+    }
+
+    @BeforeEach
+    void initializePassphrase() throws IOException {
+        passphraseService.deletePassphraseFileForTests();
+        passphraseService.initialize("SehrSicherePassphrase123");
+    }
 
     @Test
     void creates_the_expected_schema_tables() {
@@ -108,8 +146,13 @@ class TaxReturnPersistenceIntegrationTest {
         entityManager.flush();
         entityManager.clear();
 
+        String encryptedFirstName = jdbcTemplate.queryForObject("select cast(first_name as varchar) from persons where role = 'TAXPAYER'", String.class);
+        String encryptedGrossWages = jdbcTemplate.queryForObject("select cast(gross_wages as varchar) from wage_tax_certificates", String.class);
+
         TaxReturnEntity loaded = taxReturnRepository.findById(saved.getId()).orElseThrow();
 
+        assertThat(encryptedFirstName).startsWith("enc:v1:").doesNotContain("Anna");
+        assertThat(encryptedGrossWages).startsWith("enc:v1:").doesNotContain("50000.00");
         assertThat(jdbcTemplate.queryForObject("select count(*) from tax_returns", Long.class)).isEqualTo(1L);
         assertThat(jdbcTemplate.queryForObject("select count(*) from persons", Long.class)).isEqualTo(2L);
         assertThat(jdbcTemplate.queryForObject("select count(*) from wage_tax_certificates", Long.class)).isEqualTo(1L);
@@ -121,7 +164,9 @@ class TaxReturnPersistenceIntegrationTest {
         assertThat(loaded.getFilingMode()).isEqualTo(FilingMode.JOINT);
         assertThat(loaded.getStatus()).isEqualTo(ReturnStatus.DRAFT);
         assertThat(loaded.getPersons()).extracting(PersonEntity::getRole).containsExactlyInAnyOrder(PersonRole.TAXPAYER, PersonRole.SPOUSE);
+        assertThat(loaded.getPersons()).extracting(PersonEntity::getFirstName).containsExactlyInAnyOrder("Anna", "Ben");
         assertThat(loaded.getWageTaxCertificates()).hasSize(1);
+        assertThat(loaded.getWageTaxCertificates().getFirst().getGrossWages()).isEqualByComparingTo("50000.00");
         assertThat(loaded.getDeductionItems()).hasSize(1);
         assertThat(loaded.getValidationIssues()).hasSize(1);
         assertThat(loaded.getExportBundle().getPdfPath()).isEqualTo("exports/2025-summary.pdf");

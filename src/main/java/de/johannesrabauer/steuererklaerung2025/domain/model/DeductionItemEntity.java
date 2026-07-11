@@ -1,6 +1,9 @@
 package de.johannesrabauer.steuererklaerung2025.domain.model;
 
+import de.johannesrabauer.steuererklaerung2025.infrastructure.security.EncryptedBigDecimalConverter;
+import de.johannesrabauer.steuererklaerung2025.infrastructure.security.EncryptedStringConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
@@ -20,16 +23,20 @@ public class DeductionItemEntity extends AuditableEntity {
     @JoinColumn(name = "person_id")
     private PersonEntity person;
 
-    @Column(nullable = false, length = 64)
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(nullable = false, columnDefinition = "clob")
     private String category;
 
-    @Column(length = 64)
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(columnDefinition = "clob")
     private String subcategory;
 
-    @Column(nullable = false, precision = 19, scale = 2)
+    @Convert(converter = EncryptedBigDecimalConverter.class)
+    @Column(nullable = false, columnDefinition = "clob")
     private BigDecimal amount = BigDecimal.ZERO;
 
-    @Column(name = "evidence_status", nullable = false, length = 32)
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(name = "evidence_status", nullable = false, columnDefinition = "clob")
     private String evidenceStatus = "NOT_PROVIDED";
 
     public TaxReturnEntity getTaxReturn() {

@@ -14,3 +14,8 @@ spring:
           time_zone: UTC
   flyway:
     enabled: true
+
+steuererklaerung:
+  security:
+    minimum-passphrase-length: 12
+    key-derivation-iterations: 100000

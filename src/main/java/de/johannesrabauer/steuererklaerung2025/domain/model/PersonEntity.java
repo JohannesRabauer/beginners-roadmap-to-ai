@@ -1,6 +1,8 @@
 package de.johannesrabauer.steuererklaerung2025.domain.model;
 
+import de.johannesrabauer.steuererklaerung2025.infrastructure.security.EncryptedStringConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -21,16 +23,20 @@ public class PersonEntity extends AuditableEntity {
     @Column(nullable = false, length = 16)
     private PersonRole role;
 
-    @Column(name = "first_name", nullable = false, length = 100)
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(name = "first_name", nullable = false, columnDefinition = "clob")
     private String firstName;
 
-    @Column(name = "last_name", nullable = false, length = 100)
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(name = "last_name", nullable = false, columnDefinition = "clob")
     private String lastName;
 
-    @Column(name = "tax_id", length = 20)
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(name = "tax_id", columnDefinition = "clob")
     private String taxId;
 
-    @Column(name = "marital_status", length = 32)
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(name = "marital_status", columnDefinition = "clob")
     private String maritalStatus;
 
     public TaxReturnEntity getTaxReturn() {
