@@ -9,6 +9,12 @@ import org.springframework.web.servlet.HandlerInterceptor;
 @Component
 public class PassphraseGuardInterceptor implements HandlerInterceptor {
 
+    private final PassphraseService passphraseService;
+
+    public PassphraseGuardInterceptor(PassphraseService passphraseService) {
+        this.passphraseService = passphraseService;
+    }
+
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         String path = request.getRequestURI();
@@ -44,12 +50,6 @@ public class PassphraseGuardInterceptor implements HandlerInterceptor {
             return false;
         }
         return true;
-    }
-
-    private final PassphraseService passphraseService;
-
-    public PassphraseGuardInterceptor(PassphraseService passphraseService) {
-        this.passphraseService = passphraseService;
     }
 
     private boolean isPassphraseSetupPath(String path) {
