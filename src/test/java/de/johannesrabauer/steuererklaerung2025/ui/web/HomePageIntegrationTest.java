@@ -1,17 +1,21 @@
 package de.johannesrabauer.steuererklaerung2025.ui.web;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.matchesRegex;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
+import de.johannesrabauer.steuererklaerung2025.infrastructure.persistence.jpa.SpringDataTaxReturnRepository;
 import de.johannesrabauer.steuererklaerung2025.infrastructure.security.PassphraseService;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,6 +44,9 @@ class HomePageIntegrationTest {
     @Autowired
     private PassphraseService passphraseService;
 
+    @Autowired
+    private SpringDataTaxReturnRepository taxReturnRepository;
+
     @Value("${steuererklaerung.ui-name}")
     private String applicationName;
 
@@ -66,6 +73,11 @@ class HomePageIntegrationTest {
     @BeforeEach
     void resetPassphraseState() throws IOException {
         passphraseService.deletePassphraseFileForTests();
+    }
+
+    @AfterEach
+    void clearTaxReturns() {
+        taxReturnRepository.deleteAll();
     }
 
     @Test
@@ -117,5 +129,53 @@ class HomePageIntegrationTest {
         mockMvc.perform(get("/").session((org.springframework.mock.web.MockHttpSession) unlockResult.getRequest().getSession(false)))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Die Anwendung ist entsperrt.")));
+    }
+
+    @Test
+    void dashboard_supports_create_open_complete_and_resume() throws Exception {
+        MvcResult setupResult = mockMvc.perform(post("/passphrase/setup")
+                        .param("passphrase", "SehrSicherePassphrase123")
+                        .param("passphraseConfirmation", "SehrSicherePassphrase123"))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+
+        org.springframework.mock.web.MockHttpSession session =
+                (org.springframework.mock.web.MockHttpSession) setupResult.getRequest().getSession(false);
+
+        MvcResult createResult = mockMvc.perform(post("/returns")
+                        .session(session)
+                        .param("filingMode", "JOINT"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrlPattern("/?opened=*"))
+                .andReturn();
+
+        String redirectUrl = createResult.getResponse().getRedirectedUrl();
+        String returnId = redirectUrl.substring(redirectUrl.indexOf("opened=") + 7);
+
+        mockMvc.perform(get("/").session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Gemeinsame Veranlagung")))
+                .andExpect(content().string(containsString("Entwurf")));
+
+        mockMvc.perform(get("/returns/" + returnId).session(session))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/?opened=" + returnId));
+
+        mockMvc.perform(post("/returns/" + returnId + "/complete").session(session))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/?opened=" + returnId));
+
+        mockMvc.perform(get("/?opened=" + returnId).session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Abgeschlossen")));
+
+        mockMvc.perform(post("/returns/" + returnId + "/resume").session(session))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/?opened=" + returnId));
+
+        mockMvc.perform(get("/?opened=" + returnId).session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Entwurf")))
+                .andExpect(content().string(matchesRegex("(?s).*id=\\\"opened-return-id\\\">\\Q" + returnId + "\\E<.*")));
     }
 }

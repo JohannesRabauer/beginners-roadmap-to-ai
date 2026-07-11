@@ -1,27 +1,131 @@
 package de.johannesrabauer.steuererklaerung2025.ui.web;
 
+import de.johannesrabauer.steuererklaerung2025.domain.model.FilingMode;
+import de.johannesrabauer.steuererklaerung2025.domain.model.ReturnStatus;
+import de.johannesrabauer.steuererklaerung2025.domain.model.TaxReturnEntity;
+import de.johannesrabauer.steuererklaerung2025.domain.port.TaxReturnRepository;
+import java.time.Instant;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 public class HomeController {
 
+    private final TaxReturnRepository taxReturnRepository;
     private final String applicationName;
     private final int taxYear;
 
     public HomeController(
+            TaxReturnRepository taxReturnRepository,
             @Value("${steuererklaerung.ui-name}") String applicationName,
             @Value("${steuererklaerung.tax-year}") int taxYear) {
+        this.taxReturnRepository = taxReturnRepository;
         this.applicationName = applicationName;
         this.taxYear = taxYear;
     }
 
     @GetMapping("/")
-    public String index(Model model) {
+    public String index(@RequestParam(name = "opened", required = false) UUID openedReturnId, Model model) {
+        Optional<TaxReturnEntity> openedReturn = Optional.empty();
+        if (openedReturnId != null) {
+            openedReturn = taxReturnRepository.findById(openedReturnId)
+                    .filter(taxReturn -> taxReturn.getTaxYear() == taxYear);
+        }
+
         model.addAttribute("applicationName", applicationName);
         model.addAttribute("taxYear", taxYear);
+        model.addAttribute("filingModes", FilingMode.values());
+        model.addAttribute("returns", taxReturnRepository.findAllByTaxYear(taxYear));
+        model.addAttribute("openedReturn", openedReturn.orElse(null));
         return "home";
+    }
+
+    @PostMapping("/returns")
+    public String createReturn(
+            @RequestParam("filingMode") String filingModeInput,
+            RedirectAttributes redirectAttributes) {
+        FilingMode filingMode;
+        try {
+            filingMode = FilingMode.valueOf(filingModeInput.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException exception) {
+            redirectAttributes.addFlashAttribute("error", "Ungültiger Veranlagungstyp.");
+            return "redirect:/";
+        }
+
+        TaxReturnEntity taxReturn = new TaxReturnEntity();
+        taxReturn.setTaxYear(taxYear);
+        taxReturn.setFilingMode(filingMode);
+        taxReturn.setStatus(ReturnStatus.DRAFT);
+
+        TaxReturnEntity saved = taxReturnRepository.save(taxReturn);
+        redirectAttributes.addFlashAttribute("message", "Steuerfall wurde angelegt.");
+        return "redirect:/?opened=" + saved.getId();
+    }
+
+    @GetMapping("/returns/{returnId}")
+    public String openReturn(@PathVariable("returnId") UUID returnId, RedirectAttributes redirectAttributes) {
+        Optional<TaxReturnEntity> taxReturn = taxReturnRepository.findById(returnId);
+        if (taxReturn.isEmpty() || taxReturn.get().getTaxYear() != taxYear) {
+            redirectAttributes.addFlashAttribute("error", "Steuerfall wurde nicht gefunden.");
+            return "redirect:/";
+        }
+        return "redirect:/?opened=" + returnId;
+    }
+
+    @PostMapping("/returns/{returnId}/complete")
+    public String markCompleted(@PathVariable("returnId") UUID returnId, RedirectAttributes redirectAttributes) {
+        Optional<TaxReturnEntity> taxReturn = taxReturnRepository.findById(returnId);
+        if (taxReturn.isEmpty() || taxReturn.get().getTaxYear() != taxYear) {
+            redirectAttributes.addFlashAttribute("error", "Steuerfall wurde nicht gefunden.");
+            return "redirect:/";
+        }
+
+        TaxReturnEntity entity = taxReturn.get();
+        entity.setStatus(ReturnStatus.COMPLETED);
+        entity.setCompletedAt(Instant.now());
+        taxReturnRepository.save(entity);
+
+        redirectAttributes.addFlashAttribute("message", "Steuerfall als abgeschlossen markiert.");
+        return "redirect:/?opened=" + returnId;
+    }
+
+    @PostMapping("/returns/{returnId}/resume")
+    public String markDraft(@PathVariable("returnId") UUID returnId, RedirectAttributes redirectAttributes) {
+        Optional<TaxReturnEntity> taxReturn = taxReturnRepository.findById(returnId);
+        if (taxReturn.isEmpty() || taxReturn.get().getTaxYear() != taxYear) {
+            redirectAttributes.addFlashAttribute("error", "Steuerfall wurde nicht gefunden.");
+            return "redirect:/";
+        }
+
+        TaxReturnEntity entity = taxReturn.get();
+        entity.setStatus(ReturnStatus.DRAFT);
+        entity.setCompletedAt(null);
+        taxReturnRepository.save(entity);
+
+        redirectAttributes.addFlashAttribute("message", "Steuerfall wieder als Entwurf markiert.");
+        return "redirect:/?opened=" + returnId;
+    }
+
+    public String statusLabel(ReturnStatus status) {
+        return switch (status) {
+            case DRAFT -> "Entwurf";
+            case COMPLETED -> "Abgeschlossen";
+        };
+    }
+
+    public String filingModeLabel(FilingMode filingMode) {
+        return switch (filingMode) {
+            case SINGLE -> "Einzelveranlagung";
+            case JOINT -> "Gemeinsame Veranlagung";
+        };
     }
 }

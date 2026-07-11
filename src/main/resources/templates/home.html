@@ -17,13 +17,59 @@
         </form>
     </header>
 
-    <section id="next-steps">
-        <h2>Geplanter Einstieg</h2>
-        <ul>
-            <li>Steuerfall für 2025 anlegen</li>
-            <li>Geführten Interview-Ablauf starten</li>
-            <li>Prüfungen, PDF-Export und ELSTER-Export vorbereiten</li>
-        </ul>
+    <section id="dashboard">
+        <h2>Steuerfall-Dashboard</h2>
+        <p>Sie können einen neuen Steuerfall für <span th:text="${taxYear}">2025</span> anlegen oder einen vorhandenen Entwurf fortsetzen.</p>
+        <form method="post" th:action="@{/returns}">
+            <label for="filing-mode">Veranlagung</label>
+            <select id="filing-mode" name="filingMode" required>
+                <option th:each="mode : ${filingModes}"
+                        th:value="${mode.name()}"
+                        th:text="${@homeController.filingModeLabel(mode)}"></option>
+            </select>
+            <button id="create-return-button" type="submit">Neuen Steuerfall anlegen</button>
+        </form>
+
+        <p th:if="${#lists.isEmpty(returns)}" id="no-returns-message">Noch kein Steuerfall vorhanden.</p>
+
+        <table th:if="${!#lists.isEmpty(returns)}" id="returns-table">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Veranlagung</th>
+                <th>Status</th>
+                <th>Zuletzt geändert</th>
+                <th>Aktion</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="taxReturn : ${returns}">
+                <td th:text="${taxReturn.id}"></td>
+                <td th:text="${@homeController.filingModeLabel(taxReturn.filingMode)}"></td>
+                <td th:text="${@homeController.statusLabel(taxReturn.status)}"></td>
+                <td th:text="${#temporals.format(taxReturn.updatedAt, 'dd.MM.yyyy HH:mm')}"></td>
+                <td>
+                    <a th:href="@{|/returns/${taxReturn.id}|}">Öffnen</a>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section id="return-lifecycle" th:if="${openedReturn != null}">
+        <h2>Geöffneter Steuerfall</h2>
+        <div>
+            <p>ID: <span id="opened-return-id" th:text="${openedReturn.id}"></span></p>
+            <p>Status: <span id="opened-return-status" th:text="${@homeController.statusLabel(openedReturn.status)}"></span></p>
+            <p>Veranlagung: <span id="opened-return-filing-mode" th:text="${@homeController.filingModeLabel(openedReturn.filingMode)}"></span></p>
+            <p id="resume-hint">Der geführte Interview-Ablauf wird in den nächsten Schritten erweitert. Dieser Steuerfall ist bereits angelegt und kann wieder geöffnet werden.</p>
+            <form method="post" th:if="${openedReturn.status.name() == 'DRAFT'}" th:action="@{|/returns/${openedReturn.id}/complete|}">
+                <button id="mark-completed-button" type="submit">Als abgeschlossen markieren</button>
+            </form>
+            <form method="post" th:if="${openedReturn.status.name() == 'COMPLETED'}" th:action="@{|/returns/${openedReturn.id}/resume|}">
+                <button id="mark-draft-button" type="submit">Wieder als Entwurf öffnen</button>
+            </form>
+        </div>
     </section>
 
     <section id="disclaimer">
