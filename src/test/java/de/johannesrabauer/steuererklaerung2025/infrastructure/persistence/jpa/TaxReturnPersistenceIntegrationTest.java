@@ -20,6 +20,8 @@ import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,8 +37,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 class TaxReturnPersistenceIntegrationTest {
 
-    private static final Path TEST_DIRECTORY = createTempDirectory();
-    private static final Path PASSPHRASE_FILE = TEST_DIRECTORY.resolve("persistence-passphrase.properties");
+    private static Path testDirectory;
+    private static Path passphraseFile;
 
     @Autowired
     private TaxReturnRepository taxReturnRepository;
@@ -52,7 +54,19 @@ class TaxReturnPersistenceIntegrationTest {
 
     @DynamicPropertySource
     static void registerProperties(DynamicPropertyRegistry registry) {
-        registry.add("steuererklaerung.security.passphrase-file", () -> PASSPHRASE_FILE.toString());
+        registry.add("steuererklaerung.security.passphrase-file", () -> passphraseFile.toString());
+    }
+
+    @BeforeAll
+    static void createTestDirectory() throws IOException {
+        testDirectory = Files.createTempDirectory("steuererklaerung-persistence-test-");
+        passphraseFile = testDirectory.resolve("persistence-passphrase.properties");
+    }
+
+    @AfterAll
+    static void deleteTestDirectory() throws IOException {
+        Files.deleteIfExists(passphraseFile);
+        Files.deleteIfExists(testDirectory);
     }
 
     @BeforeEach
@@ -156,13 +170,5 @@ class TaxReturnPersistenceIntegrationTest {
         assertThat(loaded.getDeductionItems()).hasSize(1);
         assertThat(loaded.getValidationIssues()).hasSize(1);
         assertThat(loaded.getExportBundle().getPdfPath()).isEqualTo("exports/2025-summary.pdf");
-    }
-
-    private static Path createTempDirectory() {
-        try {
-            return Files.createTempDirectory("steuererklaerung-persistence-test-");
-        } catch (IOException exception) {
-            throw new IllegalStateException("Failed to create a temporary persistence test directory.", exception);
-        }
     }
 }

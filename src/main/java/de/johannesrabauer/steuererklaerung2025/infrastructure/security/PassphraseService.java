@@ -51,7 +51,8 @@ public class PassphraseService {
     PassphraseService(Path passphraseFile, int minimumPassphraseLength, int keyDerivationIterations, SecureRandom secureRandom) {
         this.passphraseFile = Objects.requireNonNull(passphraseFile, "passphraseFile must not be null");
         if (minimumPassphraseLength < RECOMMENDED_MINIMUM_PASSPHRASE_LENGTH) {
-            throw new IllegalArgumentException("The configured minimum passphrase length must be at least 12 characters.");
+            throw new IllegalArgumentException("The configured minimum passphrase length must be at least "
+                    + RECOMMENDED_MINIMUM_PASSPHRASE_LENGTH + " characters.");
         }
         if (keyDerivationIterations <= 0) {
             throw new IllegalArgumentException("The key derivation iteration count must be positive.");

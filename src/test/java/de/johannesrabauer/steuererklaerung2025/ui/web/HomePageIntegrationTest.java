@@ -12,6 +12,8 @@ import de.johannesrabauer.steuererklaerung2025.infrastructure.security.Passphras
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,8 +31,8 @@ import org.springframework.test.web.servlet.MvcResult;
 @ActiveProfiles("test")
 class HomePageIntegrationTest {
 
-    private static final Path TEST_DIRECTORY = createTempDirectory();
-    private static final Path PASSPHRASE_FILE = TEST_DIRECTORY.resolve("web-passphrase.properties");
+    private static Path testDirectory;
+    private static Path passphraseFile;
 
     @Autowired
     private MockMvc mockMvc;
@@ -46,7 +48,19 @@ class HomePageIntegrationTest {
 
     @DynamicPropertySource
     static void registerProperties(DynamicPropertyRegistry registry) {
-        registry.add("steuererklaerung.security.passphrase-file", () -> PASSPHRASE_FILE.toString());
+        registry.add("steuererklaerung.security.passphrase-file", () -> passphraseFile.toString());
+    }
+
+    @BeforeAll
+    static void createTestDirectory() throws IOException {
+        testDirectory = Files.createTempDirectory("steuererklaerung-web-test-");
+        passphraseFile = testDirectory.resolve("web-passphrase.properties");
+    }
+
+    @AfterAll
+    static void deleteTestDirectory() throws IOException {
+        Files.deleteIfExists(passphraseFile);
+        Files.deleteIfExists(testDirectory);
     }
 
     @BeforeEach
@@ -103,13 +117,5 @@ class HomePageIntegrationTest {
         mockMvc.perform(get("/").session((org.springframework.mock.web.MockHttpSession) unlockResult.getRequest().getSession(false)))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Die Anwendung ist entsperrt.")));
-    }
-
-    private static Path createTempDirectory() {
-        try {
-            return Files.createTempDirectory("steuererklaerung-web-test-");
-        } catch (IOException exception) {
-            throw new IllegalStateException("Failed to create a temporary web test directory.", exception);
-        }
     }
 }
