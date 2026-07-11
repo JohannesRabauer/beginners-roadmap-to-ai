@@ -16,9 +16,18 @@ spring:
   thymeleaf:
     cache: false
 
+server:
+  servlet:
+    session:
+      timeout: 30m
+
 steuererklaerung:
   ui-name: Steuererklärung 2025 Assistant
   tax-year: 2025
+  security:
+    passphrase-file: ./data/passphrase.properties
+    minimum-passphrase-length: 12
+    key-derivation-iterations: 600000
 
 ---
 spring:

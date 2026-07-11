@@ -1,6 +1,8 @@
 package de.johannesrabauer.steuererklaerung2025.domain.model;
 
+import de.johannesrabauer.steuererklaerung2025.infrastructure.security.EncryptedStringConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
@@ -15,7 +17,8 @@ public class ExportBundleEntity extends AuditableEntity {
     @JoinColumn(name = "tax_return_id", nullable = false, unique = true)
     private TaxReturnEntity taxReturn;
 
-    @Column(name = "pdf_path", length = 500)
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(name = "pdf_path", columnDefinition = "clob")
     private String pdfPath;
 
     @Column(name = "elster_shape_version", nullable = false, length = 32)

@@ -1,6 +1,9 @@
 package de.johannesrabauer.steuererklaerung2025.domain.model;
 
+import de.johannesrabauer.steuererklaerung2025.infrastructure.security.EncryptedBigDecimalConverter;
+import de.johannesrabauer.steuererklaerung2025.infrastructure.security.EncryptedStringConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
@@ -20,19 +23,24 @@ public class WageTaxCertificateEntity extends AuditableEntity {
     @JoinColumn(name = "person_id")
     private PersonEntity person;
 
-    @Column(name = "employer_name", nullable = false, length = 200)
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(name = "employer_name", nullable = false, columnDefinition = "clob")
     private String employerName;
 
-    @Column(name = "gross_wages", nullable = false, precision = 19, scale = 2)
+    @Convert(converter = EncryptedBigDecimalConverter.class)
+    @Column(name = "gross_wages", nullable = false, columnDefinition = "clob")
     private BigDecimal grossWages = BigDecimal.ZERO;
 
-    @Column(name = "wage_tax", nullable = false, precision = 19, scale = 2)
+    @Convert(converter = EncryptedBigDecimalConverter.class)
+    @Column(name = "wage_tax", nullable = false, columnDefinition = "clob")
     private BigDecimal wageTax = BigDecimal.ZERO;
 
-    @Column(name = "solidarity_surcharge", nullable = false, precision = 19, scale = 2)
+    @Convert(converter = EncryptedBigDecimalConverter.class)
+    @Column(name = "solidarity_surcharge", nullable = false, columnDefinition = "clob")
     private BigDecimal solidaritySurcharge = BigDecimal.ZERO;
 
-    @Column(name = "church_tax", nullable = false, precision = 19, scale = 2)
+    @Convert(converter = EncryptedBigDecimalConverter.class)
+    @Column(name = "church_tax", nullable = false, columnDefinition = "clob")
     private BigDecimal churchTax = BigDecimal.ZERO;
 
     public TaxReturnEntity getTaxReturn() {

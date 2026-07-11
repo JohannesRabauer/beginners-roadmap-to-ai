@@ -1,6 +1,8 @@
 package de.johannesrabauer.steuererklaerung2025.domain.model;
 
+import de.johannesrabauer.steuererklaerung2025.infrastructure.security.EncryptedStringConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
@@ -18,10 +20,12 @@ public class ValidationIssueEntity extends AuditableEntity {
     @Column(nullable = false, length = 16)
     private String severity;
 
-    @Column(name = "field_path", nullable = false, length = 255)
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(name = "field_path", nullable = false, columnDefinition = "clob")
     private String fieldPath;
 
-    @Column(nullable = false, length = 2000)
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(nullable = false, columnDefinition = "clob")
     private String message;
 
     public TaxReturnEntity getTaxReturn() {

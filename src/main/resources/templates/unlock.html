@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="de" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anwendung entsperren</title>
+</head>
+<body>
+<main id="unlock-shell">
+    <h1>Anwendung entsperren</h1>
+    <p>Geben Sie Ihre lokale Passphrase ein, um auf verschlüsselte Steuerdaten zuzugreifen.</p>
+    <p th:if="${message}" id="unlock-message" th:text="${message}"></p>
+    <p th:if="${error}" id="unlock-error" th:text="${error}"></p>
+    <form method="post" th:action="@{/unlock}">
+        <label for="passphrase">Passphrase</label>
+        <input id="passphrase" name="passphrase" type="password" autocomplete="current-password" required>
+        <button id="unlock-submit" type="submit">Entsperren</button>
+    </form>
+
+    <section id="unlock-warning">
+        <h2>Hinweis</h2>
+        <p>Ohne die richtige Passphrase bleiben lokale Steuerdaten unzugänglich.</p>
+        <p>Wenn Sie die Passphrase vergessen haben, können vorhandene Daten nicht wiederhergestellt werden.</p>
+    </section>
+</main>
+</body>
+</html>

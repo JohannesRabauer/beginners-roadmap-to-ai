@@ -7,8 +7,15 @@
 </head>
 <body>
 <main id="app-shell">
-    <h1 id="app-title" th:text="${applicationName}">Steuererklärung 2025 Assistant</h1>
-    <p>Lokale Arbeitsoberfläche für die Einkommensteuererklärung <span id="tax-year" th:text="${taxYear}">2025</span>.</p>
+    <header>
+        <h1 id="app-title" th:text="${applicationName}">Steuererklärung 2025 Assistant</h1>
+        <p>Lokale Arbeitsoberfläche für die Einkommensteuererklärung <span id="tax-year" th:text="${taxYear}">2025</span>.</p>
+        <p id="session-status">Die Anwendung ist entsperrt. Ihre lokalen Daten bleiben nur mit Ihrer Passphrase lesbar.</p>
+        <p th:if="${message}" id="status-message" th:text="${message}"></p>
+        <form method="post" th:action="@{/lock}">
+            <button id="lock-button" type="submit">Anwendung sperren</button>
+        </form>
+    </header>
 
     <section id="next-steps">
         <h2>Geplanter Einstieg</h2>

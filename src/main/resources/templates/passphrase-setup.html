@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="de" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Passphrase einrichten</title>
+</head>
+<body>
+<main id="passphrase-setup-shell">
+    <h1>Passphrase für die lokale Anwendung einrichten</h1>
+    <p>Bevor Sie Steuerdaten speichern, muss die Anwendung mit einer lokalen Passphrase geschützt werden.</p>
+    <p th:if="${error}" id="setup-error" th:text="${error}"></p>
+    <form method="post" th:action="@{/passphrase/setup}">
+        <label for="passphrase">Passphrase</label>
+        <input id="passphrase" name="passphrase" type="password" autocomplete="new-password" required>
+
+        <label for="passphraseConfirmation">Passphrase wiederholen</label>
+        <input id="passphraseConfirmation" name="passphraseConfirmation" type="password" autocomplete="new-password" required>
+
+        <p id="passphrase-rules">Verwenden Sie mindestens <span th:text="${minimumPassphraseLength}">12</span> Zeichen.</p>
+        <button id="setup-submit" type="submit">Passphrase einrichten</button>
+    </form>
+
+    <section id="recovery-warning">
+        <h2>Wichtiger Hinweis</h2>
+        <p>Wenn Sie diese Passphrase verlieren, können gespeicherte Steuerdaten nicht wiederhergestellt werden.</p>
+        <p>Ein späteres Ändern der Passphrase wird erst in einem folgenden Ausbauschritt unterstützt.</p>
+    </section>
+</main>
+</body>
+</html>
