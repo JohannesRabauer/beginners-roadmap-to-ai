@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="de" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${applicationName}">Steuererklärung 2025 Assistant</title>
+</head>
+<body>
+<main id="app-shell">
+    <h1 id="app-title" th:text="${applicationName}">Steuererklärung 2025 Assistant</h1>
+    <p>Lokale Arbeitsoberfläche für die Einkommensteuererklärung <span id="tax-year" th:text="${taxYear}">2025</span>.</p>
+
+    <section id="next-steps">
+        <h2>Geplanter Einstieg</h2>
+        <ul>
+            <li>Steuerfall für 2025 anlegen</li>
+            <li>Geführten Interview-Ablauf starten</li>
+            <li>Prüfungen, PDF-Export und ELSTER-Export vorbereiten</li>
+        </ul>
+    </section>
+
+    <section id="disclaimer">
+        <h2>Hinweis</h2>
+        <p>Diese Anwendung hilft bei der Vorbereitung einer deutschen Steuererklärung für 2025. Sie ersetzt keine steuerliche oder rechtliche Beratung.</p>
+    </section>
+</main>
+</body>
+</html>
